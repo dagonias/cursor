@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Controle Fator R - Impostos</title>
+<style>
+  :root { --bg:#f6f8fb; --ink:#1f2937; --muted:#667085; --card:#fff; --accent:#1F4E79; --ok:#027A48; --warn:#B54708; --line:#e5e7eb; --edit:#FFF8E7; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Georgia, "Times New Roman", serif; background: linear-gradient(180deg,#eef3f8,#f7f3ea 45%,#f6f8fb); color:var(--ink); }
+  header { padding:28px 20px 10px; max-width:1200px; margin:0 auto; }
+  h1 { margin:0; font-size: clamp(1.6rem, 3vw, 2.2rem); color:var(--accent); letter-spacing:-0.02em; }
+  .sub { color:var(--muted); margin-top:8px; max-width:70ch; }
+  main { max-width:1200px; margin:0 auto; padding:10px 20px 60px; display:grid; gap:18px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow: 0 10px 30px rgba(31,78,121,.06); }
+  h2 { margin:0 0 12px; font-size:1.15rem; color:var(--accent); }
+  label { display:block; font-size:.85rem; color:var(--muted); margin-bottom:4px; }
+  input, select { width:100%; padding:8px 10px; border:1px solid #d0d5dd; border-radius:8px; background:var(--edit); font: inherit; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
+  table { width:100%; border-collapse: collapse; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; }
+  th, td { border-bottom:1px solid var(--line); padding:6px 8px; text-align:right; }
+  th:first-child, td:first-child { text-align:left; position:sticky; left:0; background:#fff; }
+  th { background:#1F4E79; color:#fff; position:sticky; top:0; z-index:1; }
+  td input { width:100%; min-width:90px; text-align:right; }
+  .ok { background:#D1FADF; font-weight:700; }
+  .bad { background:#FEE4E2; font-weight:700; }
+  .scroll { overflow:auto; max-height: 70vh; border:1px solid var(--line); border-radius:10px; }
+  .kpi { font-size:1.4rem; font-weight:700; color:var(--accent); }
+  .hint { font-size:.9rem; color:var(--muted); }
+  .names input { text-align:left; font-weight:600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Controle Fator R</h1>
+  <p class="sub">Abra este arquivo no navegador. Preencha os nomes das empresas e os valores das notas. A simulacao recalcula Fator R, DAS, INSS, IRRF e liquido familiar na hora.</p>
+</header>
+<main>
+  <section class="card">
+    <h2>Parametros</h2>
+    <div class="grid">
+      <div><label>Pro-labore atual (C1)</label><input id="pl1" type="number" value="4400" /></div>
+      <div><label>Pro-labore manual (C3)</label><input id="pl3" type="number" value="7300" /></div>
+      <div><label>Meta Fator R</label><input id="meta" type="number" step="0.01" value="0.28" /></div>
+      <div><label>Aliquota Anexo III</label><input id="a3" type="number" step="0.001" value="0.06" /></div>
+      <div><label>Aliquota Anexo V</label><input id="a5" type="number" step="0.001" value="0.155" /></div>
+      <div><label>Inicio ajuste automatico</label><input id="startAuto" type="month" value="2026-09" /></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Nomes das empresas</h2>
+    <div class="grid names">
+      <div><label>Empresa 1</label><input id="n1" value="Contrato atual" /></div>
+      <div><label>Empresa 2</label><input id="n2" value="Contrato novo" /></div>
+      <div><label>Empresa 3</label><input id="n3" value="" /></div>
+      <div><label>Empresa 4</label><input id="n4" value="" /></div>
+      <div><label>Empresa 5</label><input id="n5" value="" /></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Resumo do mes selecionado (C2 automatico)</h2>
+    <div class="grid">
+      <div><label>Mes</label><select id="focusMonth"></select></div>
+      <div><label>Receita</label><div class="kpi" id="kRec">-</div></div>
+      <div><label>Pro-labore sugerido</label><div class="kpi" id="kPL">-</div></div>
+      <div><label>Fator R</label><div class="kpi" id="kFR">-</div></div>
+      <div><label>Anexo / DAS</label><div class="kpi" id="kDAS">-</div></div>
+      <div><label>INSS + IRRF</label><div class="kpi" id="kPF">-</div></div>
+    </div>
+    <p class="hint" id="kHint"></p>
+  </section>
+
+  <section class="card">
+    <h2>Notas por empresa (editavel)</h2>
+    <div class="scroll">
+      <table id="notas"><thead></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Simulacao (3 cenarios)</h2>
+    <div class="scroll">
+      <table id="sim"><thead></thead><tbody></tbody></table>
+    </div>
+    <p class="hint">Liquido familiar (PJ) = Receita - DAS - INSS - IRRF. Lucro isento estimado = Receita - DAS - Pro-labore.</p>
+  </section>
+</main>
+<script>
+const DATA = [{"ym": "2025-01", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2025-02", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2025-03", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2025-04", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2025-05", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2025-06", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2025-07", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2025-08", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2025-09", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2025-10", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2025-11", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2025-12", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2026-01", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2026-02", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2026-03", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2026-04", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2026-05", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2026-06", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2026-07", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2026-08", "e1": 15500, "e2": 0, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2026-09", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2026-10", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2026-11", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2026-12", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2027-01", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2027-02", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2027-03", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2027-04", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2027-05", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2027-06", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2027-07", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2027-08", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2027-09", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2027-10", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2027-11", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}, {"ym": "2027-12", "e1": 15500, "e2": 10500, "e3": 0, "e4": 0, "e5": 0}];
+const money = n => n.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+const pct = n => (n*100).toFixed(2).replace('.', ',') + '%';
+
+function irrf(pl, depsWife=0) {
+  const teto = 8157.41;
+  const inss = Math.min(pl, teto) * 0.11;
+  const base = Math.max(0, pl - inss - depsWife * 189.59);
+  let ir = 0;
+  if (base <= 2428.80) ir = 0;
+  else if (base <= 2826.65) ir = base*0.075 - 182.16;
+  else if (base <= 3751.05) ir = base*0.15 - 394.16;
+  else if (base <= 4664.68) ir = base*0.225 - 675.49;
+  else ir = base*0.275 - 908.73;
+  if (pl <= 5000) return 0;
+  if (pl <= 7350) return Math.max(0, ir - (978.62 - 0.133145*pl));
+  return Math.max(0, ir);
+}
+function inss(pl) { return Math.min(pl, 8157.41) * 0.11; }
+
+function params() {
+  return {
+    pl1: +pl1.value, pl3: +pl3.value, meta: +meta.value,
+    a3: +a3.value, a5: +a5.value, startAuto: startAuto.value
+  };
+}
+
+function revenues() {
+  return DATA.map(r => (+r.e1||0)+(+r.e2||0)+(+r.e3||0)+(+r.e4||0)+(+r.e5||0));
+}
+
+function buildScenario(mode) {
+  const p = params();
+  const recs = revenues();
+  const folhas = [];
+  const out = [];
+  for (let i=0;i<DATA.length;i++) {
+    const start = Math.max(0, i-11);
+    const rbt = recs.slice(start, i+1).reduce((a,b)=>a+b,0);
+    let pl;
+    if (mode === 1) pl = p.pl1;
+    else if (mode === 3) pl = p.pl3;
+    else {
+      if (DATA[i].ym < p.startAuto) pl = p.pl1;
+      else {
+        const folhaAnt = folhas.slice(start, i).reduce((a,b)=>a+b,0);
+        pl = Math.max(1518, p.meta * rbt - folhaAnt);
+      }
+    }
+    folhas.push(pl);
+    const folha12 = folhas.slice(start, i+1).reduce((a,b)=>a+b,0);
+    const fr = rbt ? folha12 / rbt : 0;
+    const anexo = fr >= p.meta ? 'III' : 'V';
+    const das = recs[i] * (anexo === 'III' ? p.a3 : p.a5);
+    const iN = inss(pl);
+    const iR = irrf(pl);
+    out.push({ ym: DATA[i].ym, rec: recs[i], pl, fr, anexo, das, inss:iN, irrf:iR, lucro: Math.max(0, recs[i]-das-pl), liq: recs[i]-das-iN-iR });
+  }
+  return out;
+}
+
+function renderNotas() {
+  const head = document.querySelector('#notas thead');
+  const body = document.querySelector('#notas tbody');
+  head.innerHTML = `<tr><th>Mes</th><th>${n1.value||'Empresa 1'}</th><th>${n2.value||'Empresa 2'}</th><th>${n3.value||'Empresa 3'}</th><th>${n4.value||'Empresa 4'}</th><th>${n5.value||'Empresa 5'}</th><th>Total</th></tr>`;
+  body.innerHTML = DATA.map((r,i) => {
+    const tot = (+r.e1||0)+(+r.e2||0)+(+r.e3||0)+(+r.e4||0)+(+r.e5||0);
+    return `<tr>
+      <td>${r.ym}</td>
+      ${['e1','e2','e3','e4','e5'].map(k => `<td><input data-i="${i}" data-k="${k}" type="number" value="${r[k]}" /></td>`).join('')}
+      <td>${money(tot)}</td>
+    </tr>`;
+  }).join('');
+  body.querySelectorAll('input').forEach(inp => inp.addEventListener('input', e => {
+    const i = +e.target.dataset.i; const k = e.target.dataset.k;
+    DATA[i][k] = +e.target.value || 0;
+    renderAll();
+  }));
+}
+
+function renderSim() {
+  const c1 = buildScenario(1), c2 = buildScenario(2), c3 = buildScenario(3);
+  const head = document.querySelector('#sim thead');
+  const body = document.querySelector('#sim tbody');
+  head.innerHTML = `<tr>
+    <th>Mes</th><th>Receita</th>
+    <th>C1 PL</th><th>C1 FR</th><th>C1 Anexo</th><th>C1 DAS</th><th>C1 Liq</th>
+    <th>C2 PL</th><th>C2 FR</th><th>C2 Anexo</th><th>C2 DAS</th><th>C2 Liq</th>
+    <th>C3 PL</th><th>C3 FR</th><th>C3 Anexo</th><th>C3 DAS</th><th>C3 Liq</th>
+  </tr>`;
+  body.innerHTML = c1.map((a,i) => {
+    const b = c2[i], c = c3[i];
+    const cls = x => x==='III'?'ok':'bad';
+    return `<tr>
+      <td>${a.ym}</td><td>${money(a.rec)}</td>
+      <td>${money(a.pl)}</td><td>${pct(a.fr)}</td><td class="${cls(a.anexo)}">${a.anexo}</td><td>${money(a.das)}</td><td>${money(a.liq)}</td>
+      <td>${money(b.pl)}</td><td>${pct(b.fr)}</td><td class="${cls(b.anexo)}">${b.anexo}</td><td>${money(b.das)}</td><td>${money(b.liq)}</td>
+      <td>${money(c.pl)}</td><td>${pct(c.fr)}</td><td class="${cls(c.anexo)}">${c.anexo}</td><td>${money(c.das)}</td><td>${money(c.liq)}</td>
+    </tr>`;
+  }).join('');
+  return c2;
+}
+
+function renderFocus(c2) {
+  const sel = focusMonth;
+  if (!sel.options.length) {
+    DATA.forEach((r,i) => {
+      const o = document.createElement('option');
+      o.value = i; o.textContent = r.ym;
+      if (r.ym === '2026-09') o.selected = true;
+      sel.appendChild(o);
+    });
+  }
+  const i = +sel.value || DATA.findIndex(r => r.ym==='2026-09');
+  const row = c2[i];
+  kRec.textContent = money(row.rec);
+  kPL.textContent = money(row.pl);
+  kFR.textContent = pct(row.fr);
+  kDAS.textContent = row.anexo + ' / ' + money(row.das);
+  kPF.textContent = money(row.inss + row.irrf);
+  kHint.textContent = `INSS ${money(row.inss)} + IRRF ${money(row.irrf)}. Lucro isento estimado ${money(row.lucro)}.`;
+}
+
+function renderAll() {
+  // avoid rebuilding notas inputs caret jump: only update headers + sim + focus when typing in params/names
+  const active = document.activeElement;
+  const editingNota = active && active.closest && active.closest('#notas');
+  if (!editingNota) renderNotas();
+  else {
+    // update only totals column
+    document.querySelectorAll('#notas tbody tr').forEach((tr,i) => {
+      const r = DATA[i];
+      const tot = (+r.e1||0)+(+r.e2||0)+(+r.e3||0)+(+r.e4||0)+(+r.e5||0);
+      tr.lastElementChild.textContent = money(tot);
+    });
+    // update header names
+    const ths = document.querySelectorAll('#notas thead th');
+    [n1,n2,n3,n4,n5].forEach((el,idx) => ths[idx+1].textContent = el.value || ('Empresa '+(idx+1)));
+  }
+  const c2 = renderSim();
+  renderFocus(c2);
+}
+
+['pl1','pl3','meta','a3','a5','startAuto','n1','n2','n3','n4','n5','focusMonth'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderAll);
+  document.getElementById(id).addEventListener('change', renderAll);
+});
+renderNotas();
+renderAll();
+</script>
+</body>
+</html>

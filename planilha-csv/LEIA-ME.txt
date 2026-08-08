@@ -1,0 +1,8 @@
+Controle Fator R - arquivos CSV
+================================
+1) Abra o Google Sheets (sheets.google.com) > Arquivo > Importar
+2) Envie 01-Notas.csv (separador ponto-e-virgula)
+3) Ou baixe o arquivo .xlsx / .ods e abra no Excel ou LibreOffice
+
+Links do repositorio (branch):
+- xlsx / ods na raiz do projeto

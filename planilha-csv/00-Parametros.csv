@@ -1,0 +1,32 @@
+﻿Parametro;Valor
+Aliquota Anexo III (Fator R >= 28%);0.06
+Aliquota Anexo V (Fator R < 28%);0.155
+Meta Fator R;0.28
+INSS pro-labore (%);0.11
+Teto INSS 2026;8157.41
+Desconto simplificado IRRF mensal;607.2
+Deducao por dependente (mensal);189.59
+PESSOA FISICA / FAMILIA;
+CLT bruto mensal (voce);10000
+N dependentes (filhos);2
+Dependentes alocados no CLT? (1=sim, 0=nao);1
+Meses de CLT em 2026;5
+CENARIOS DE PRO-LABORE;
+C1 - Pro-labore fixo atual;4400
+C2 - Modo;AUTOMATICO
+C3 - Pro-labore fixo alternativo;7300
+Pro-labore minimo (piso);1518
+C2 - Inicio do ajuste automatico (mes);2026-09-01
+TABELA IRRF 2026;
+Faixa 1 teto (isento);2428.8
+Faixa 2 teto;2826.65
+Faixa 3 teto;3751.05
+Faixa 4 teto;4664.68
+Deduzir faixa 2 (7,5%);182.16
+Deduzir faixa 3 (15%);394.16
+Deduzir faixa 4 (22,5%);675.49
+Deduzir faixa 5 (27,5%);908.73
+Reducao: isencao ate;5000
+Reducao: teto parcial;7350
+Reducao: constante;978.62
+Reducao: coeficiente;0.133145
