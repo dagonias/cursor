@@ -21,10 +21,13 @@ sudo ./scripts/02-mitigar-terrapin-ssh.sh
 sudo ./scripts/03-atualizar-nginx-host.sh
 
 # 4) Aplicar certificado TLS confiável no Rancher
-#    (requer tls.crt + tls.key preparados)
+#    (requer tls.crt + tls.key; cacerts.pem se CA privada)
 ./scripts/04-aplicar-certificado-rancher.sh /caminho/tls.crt /caminho/tls.key
 
-# 5) Verificar / orientar upgrade do ingress-nginx (RKE2/K3s)
+# 5) Se a CA mudou: forçar redeploy dos agents
+./scripts/06-force-redeploy-agents.sh --all
+
+# 6) Verificar / orientar upgrade do ingress-nginx (RKE2/K3s)
 ./scripts/05-verificar-ingress-nginx.sh
 ```
 

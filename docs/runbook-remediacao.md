@@ -75,9 +75,9 @@ kubectl rollout restart deploy/rancher -n cattle-system
 Se mudou a CA (saiu do autoassinado Rancher / mudou CA privada):
 
 ```bash
-# No cluster local, para cada cluster (ID c-xxxxx na URL do Rancher):
-kubectl annotate clusters.management.cattle.io <CLUSTER_ID> \
-  io.cattle.agent.force.deploy=true
+# No cluster local — por ID ou todos os downstream:
+./scripts/06-force-redeploy-agents.sh c-xxxxx
+./scripts/06-force-redeploy-agents.sh --all
 ```
 
 Depois, em **Continuous Delivery**, use **Force Update** nos clusters Fleet.
@@ -121,11 +121,11 @@ update-crypto-policies --set "${CURRENT}:TERRAPIN"
 systemctl restart sshd
 ```
 
-Alternativa direta em `/etc/ssh/sshd_config.d/99-terrapin.conf` (se preferir não usar subpolicy):
+Alternativa (e o que o script `02` também grava) em `/etc/ssh/sshd_config.d/99-terrapin.conf`:
 
 ```
-Ciphers -chacha20-poly1305@openssh.com
-MACs -*etm@openssh.com
+Ciphers aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
 ```
 
 ### Validação
@@ -213,5 +213,6 @@ systemctl disable --now nginx
 | `scripts/01-diagnostico.sh` | Inventário TLS, SSH e nginx |
 | `scripts/02-mitigar-terrapin-ssh.sh` | Atualiza OpenSSH + subpolicy TERRAPIN |
 | `scripts/03-atualizar-nginx-host.sh` | Atualiza/avalia nginx do SO |
-| `scripts/04-aplicar-certificado-rancher.sh` | Aplica `tls-rancher-ingress` (+ CA opcional) |
+| `scripts/04-aplicar-certificado-rancher.sh` | Aplica `tls-rancher-ingress` (+ migração Helm para `secret`) |
 | `scripts/05-verificar-ingress-nginx.sh` | Mostra imagens do ingress e próximos passos |
+| `scripts/06-force-redeploy-agents.sh` | Force redeploy dos agents após troca de CA |
