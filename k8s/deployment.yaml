@@ -1,28 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: arquiteto-netdevops-monitor
-  namespace: SUBSTITUA_PELO_SEU_NAMESPACE
+  name: pds-wifi
+  namespace: monitor-wifi
   labels:
-    app: arquiteto-netdevops-monitor
+    app: pds-wifi
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: arquiteto-netdevops-monitor
+      app: pds-wifi
   template:
     metadata:
       labels:
-        app: arquiteto-netdevops-monitor
+        app: pds-wifi
     spec:
-      # Descomente se o Harbor exigir autenticação:
+      # Descomente se o Harbor exigir autenticação no pull:
       # imagePullSecrets:
       #   - name: harbor-creds
       containers:
         - name: api
-          image: SUBSTITUA_PELA_IMAGEM_HARBOR
-          # Exemplo: harbor.empresa.com/netdevops/arquiteto-monitor:1.0.0
-          imagePullPolicy: IfNotPresent
+          image: harbor.infraero.gov.br/library/pds_wifi:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 5000
@@ -38,12 +37,6 @@ spec:
               value: "4"
             - name: GUNICORN_TIMEOUT
               value: "120"
-            # Adicione aqui outras variáveis (banco, tokens, etc.):
-            # - name: DATABASE_URL
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: arquiteto-secrets
-            #       key: database-url
           readinessProbe:
             httpGet:
               path: /

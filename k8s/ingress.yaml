@@ -1,32 +1,28 @@
-# Opcional: só use se precisar de acesso externo por domínio.
-# Ajuste o ingressClassName conforme o cluster (nginx, traefik, etc.).
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: arquiteto-netdevops-monitor
-  namespace: SUBSTITUA_PELO_SEU_NAMESPACE
+  name: pds-wifi
+  namespace: monitor-wifi
   labels:
-    app: arquiteto-netdevops-monitor
+    app: pds-wifi
   annotations:
-    # Exemplo nginx:
-    # nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
-    # nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
 spec:
   ingressClassName: nginx
   rules:
-    - host: SUBSTITUA_PELO_SEU_DOMINIO
-      # Exemplo: arquiteto-monitor.empresa.local
+    - host: monitor-wifi.infraero.gov.br
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: arquiteto-netdevops-monitor
+                name: pds-wifi
                 port:
                   name: http
   # Descomente se tiver TLS/cert-manager:
   # tls:
   #   - hosts:
-  #       - SUBSTITUA_PELO_SEU_DOMINIO
-  #     secretName: arquiteto-netdevops-monitor-tls
+  #       - monitor-wifi.infraero.gov.br
+  #     secretName: pds-wifi-tls
