@@ -8,6 +8,7 @@
 | Imagem | `harbor.infraero.gov.br/library/pds_wifi:latest` |
 | Service | ClusterIP `pds-wifi` (80 → 5000) |
 | Ingress host | `monitor-wifi.infraero.gov.br` |
+| TLS secret | `monitor-wifi-tls` (certificado autoassinado) |
 
 > Ajuste o host do Ingress se o DNS interno for outro.
 

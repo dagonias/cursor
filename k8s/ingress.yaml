@@ -10,6 +10,10 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - monitor-wifi.infraero.gov.br
+      secretName: monitor-wifi-tls
   rules:
     - host: monitor-wifi.infraero.gov.br
       http:
@@ -21,8 +25,3 @@ spec:
                 name: pds-wifi
                 port:
                   name: http
-  # Descomente se tiver TLS/cert-manager:
-  # tls:
-  #   - hosts:
-  #       - monitor-wifi.infraero.gov.br
-  #     secretName: pds-wifi-tls
