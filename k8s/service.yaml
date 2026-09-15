@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: arquiteto-netdevops-monitor
+  namespace: SUBSTITUA_PELO_SEU_NAMESPACE
+  labels:
+    app: arquiteto-netdevops-monitor
+spec:
+  type: ClusterIP
+  selector:
+    app: arquiteto-netdevops-monitor
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

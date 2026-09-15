@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arquiteto-netdevops-monitor
+  namespace: SUBSTITUA_PELO_SEU_NAMESPACE
+  labels:
+    app: arquiteto-netdevops-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arquiteto-netdevops-monitor
+  template:
+    metadata:
+      labels:
+        app: arquiteto-netdevops-monitor
+    spec:
+      # Descomente se o Harbor exigir autenticação:
+      # imagePullSecrets:
+      #   - name: harbor-creds
+      containers:
+        - name: api
+          image: SUBSTITUA_PELA_IMAGEM_HARBOR
+          # Exemplo: harbor.empresa.com/netdevops/arquiteto-monitor:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          env:
+            - name: TZ
+              value: America/Sao_Paulo
+            - name: POLL_INTERVAL
+              value: "60"
+            - name: GUNICORN_WORKERS
+              value: "2"
+            - name: GUNICORN_THREADS
+              value: "4"
+            - name: GUNICORN_TIMEOUT
+              value: "120"
+            # Adicione aqui outras variáveis (banco, tokens, etc.):
+            # - name: DATABASE_URL
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: arquiteto-secrets
+            #       key: database-url
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
