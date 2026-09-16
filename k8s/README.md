@@ -43,7 +43,13 @@ kubectl -n monitor-wifi logs -l app=pds-wifi -f
 kubectl -n monitor-wifi describe ingress pds-wifi
 ```
 
-Acesse: `http://monitor-wifi.infraero.gov.br` (após DNS apontar para o Ingress Controller).
+Acesse: `https://monitor-wifi.infraero.gov.br` (após DNS apontar para o Ingress Controller).
+
+O secret TLS `monitor-wifi-tls` precisa existir no namespace `monitor-wifi` antes do Ingress:
+
+```bash
+kubectl -n monitor-wifi get secret monitor-wifi-tls
+```
 
 ## Notas
 
