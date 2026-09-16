@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pds-wifi
+  namespace: monitor-wifi
+  labels:
+    app: pds-wifi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pds-wifi
+  template:
+    metadata:
+      labels:
+        app: pds-wifi
+    spec:
+      # Descomente se o Harbor exigir autenticação no pull:
+      # imagePullSecrets:
+      #   - name: harbor-creds
+      containers:
+        - name: api
+          image: harbor.infraero.gov.br/library/pds_wifi:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          env:
+            - name: TZ
+              value: America/Sao_Paulo
+            - name: POLL_INTERVAL
+              value: "60"
+            - name: GUNICORN_WORKERS
+              value: "2"
+            - name: GUNICORN_THREADS
+              value: "4"
+            - name: GUNICORN_TIMEOUT
+              value: "120"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi

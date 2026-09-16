@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pds-wifi
+  namespace: monitor-wifi
+  labels:
+    app: pds-wifi
+spec:
+  type: ClusterIP
+  selector:
+    app: pds-wifi
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
