@@ -14,7 +14,9 @@ Arquivos: [`Jenkinsfile`](./Jenkinsfile) e [`sonar-project.properties`](./sonar-
 
 Ordem: Checkout → **SonarQube + Quality Gate** → Build → Push Harbor → Deploy DSV/HML/PRD
 
-No Jenkins, confira:
-1. Servidor SonarQube com o nome `SonarQube` (Manage Jenkins → System)
-2. Tool `SonarScanner` instalada (Global Tool Configuration)
-3. Webhook do SonarQube apontando para `https://SEU_JENKINS/sonarqube-webhook/` (necessário para Quality Gate)
+O scanner roda via Docker (`sonarsource/sonar-scanner-cli`) — **não precisa** da Global Tool `SonarScanner`.
+
+Peça ao admin do Jenkins apenas se falhar:
+1. Servidor SonarQube cadastrado com o nome `SonarQube` (ou o nome real usado aí)
+2. Webhook do Sonar → `https://SEU_JENKINS/sonarqube-webhook/` (Quality Gate)
+3. Se o agent não puxar do Docker Hub, espelhar a imagem do scanner no Harbor e alterar `SONAR_SCANNER_IMAGE`

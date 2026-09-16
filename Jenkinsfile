@@ -9,10 +9,10 @@ pipeline {
         // ========== SONARQUBE ==========
         // Project Key informado pelo Sonar
         SONAR_PROJECT_KEY = 'pds_wifi_pds_wifi_31921745-1938-4c92-a892-2900c5c9801a'
-        // Nome do servidor SonarQube configurado em Jenkins > Manage Jenkins > System
+        // Nome do servidor SonarQube configurado no Jenkins (peça ao admin se falhar)
         SONAR_SERVER = 'SonarQube'
-        // Nome da instalação do SonarScanner em Jenkins > Global Tool Configuration
-        SONAR_SCANNER_TOOL = 'SonarScanner'
+        // Scanner via Docker — não depende de Global Tool no Jenkins
+        SONAR_SCANNER_IMAGE = 'sonarsource/sonar-scanner-cli:latest'
 
         // ========== CONFIGURAÇÕES RANCHER ==========
         K8S_DEPLOYMENT = 'pds-wifi'
@@ -45,14 +45,18 @@ pipeline {
             }
         }
 
-        // ========== SONAR: análise do código ANTES do build/push ==========
+        // ========== SONAR: análise via Docker (sem tool SonarScanner no Jenkins) ==========
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    def scannerHome = tool "${SONAR_SCANNER_TOOL}"
                     withSonarQubeEnv("${SONAR_SERVER}") {
                         sh """
-                            ${scannerHome}/bin/sonar-scanner \
+                            docker run --rm \
+                              -e SONAR_HOST_URL="\${SONAR_HOST_URL}" \
+                              -e SONAR_TOKEN="\${SONAR_AUTH_TOKEN}" \
+                              -v "\${WORKSPACE}:/usr/src" \
+                              -w /usr/src \
+                              ${SONAR_SCANNER_IMAGE} \
                               -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                               -Dsonar.projectName=pds_wifi \
                               -Dsonar.sources=. \
