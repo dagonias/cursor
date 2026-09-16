@@ -14,9 +14,15 @@ Arquivos: [`Jenkinsfile`](./Jenkinsfile) e [`sonar-project.properties`](./sonar-
 
 Ordem: Checkout → **SonarQube + Quality Gate** → Build → Push Harbor → Deploy DSV/HML/PRD
 
-O scanner roda via Docker (`sonarsource/sonar-scanner-cli`) — **não precisa** da Global Tool `SonarScanner`.
+O Jenkins **não tem** o plugin SonarQube (`withSonarQubeEnv` indisponível). A pipeline usa:
+- Docker `sonarsource/sonar-scanner-cli`
+- Credencial Secret text `jenkins-sonar` (token do Sonar)
+- Quality Gate via API REST (`curl`)
 
-Peça ao admin do Jenkins apenas se falhar:
-1. Servidor SonarQube cadastrado com o nome `SonarQube` (ou o nome real usado aí)
-2. Webhook do Sonar → `https://SEU_JENKINS/sonarqube-webhook/` (Quality Gate)
-3. Se o agent não puxar do Docker Hub, espelhar a imagem do scanner no Harbor e alterar `SONAR_SCANNER_IMAGE`
+### O que você precisa configurar (sem ser admin global)
+
+1. Confirmar a URL: `SONAR_HOST_URL` (hoje `https://sonar.infraero.gov.br`)
+2. Criar no job/pasta uma credencial **Secret text**:
+   - ID: `jenkins-sonar`
+   - Valor: token de usuário do SonarQube com acesso ao projeto
+3. Se o agent não puxar do Docker Hub, espelhar o scanner no Harbor e alterar `SONAR_SCANNER_IMAGE`

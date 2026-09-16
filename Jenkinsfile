@@ -6,12 +6,14 @@ pipeline {
         imageName = 'harbor.infraero.gov.br/library/pds_wifi'
         dockerImage = ''
 
-        // ========== SONARQUBE ==========
+        // ========== SONARQUBE (sem plugin Jenkins) ==========
         // Project Key informado pelo Sonar
         SONAR_PROJECT_KEY = 'pds_wifi_pds_wifi_31921745-1938-4c92-a892-2900c5c9801a'
-        // Nome do servidor SonarQube configurado no Jenkins (peça ao admin se falhar)
-        SONAR_SERVER = 'SonarQube'
-        // Scanner via Docker — não depende de Global Tool no Jenkins
+        // URL do SonarQube da empresa — AJUSTE se for diferente
+        SONAR_HOST_URL = 'https://sonar.infraero.gov.br'
+        // Credencial Secret text no Jenkins com o token do Sonar (ID da credencial)
+        SONAR_TOKEN_CREDENTIAL = 'jenkins-sonar'
+        // Scanner via Docker — não depende de plugin/tool no Jenkins
         SONAR_SCANNER_IMAGE = 'sonarsource/sonar-scanner-cli:latest'
 
         // ========== CONFIGURAÇÕES RANCHER ==========
@@ -45,33 +47,48 @@ pipeline {
             }
         }
 
-        // ========== SONAR: análise via Docker (sem tool SonarScanner no Jenkins) ==========
+        // ========== SONAR: Docker + token (sem plugin SonarQube no Jenkins) ==========
         stage('SonarQube Analysis') {
             steps {
-                script {
-                    withSonarQubeEnv("${SONAR_SERVER}") {
-                        sh """
-                            docker run --rm \
-                              -e SONAR_HOST_URL="\${SONAR_HOST_URL}" \
-                              -e SONAR_TOKEN="\${SONAR_AUTH_TOKEN}" \
-                              -v "\${WORKSPACE}:/usr/src" \
-                              -w /usr/src \
-                              ${SONAR_SCANNER_IMAGE} \
-                              -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                              -Dsonar.projectName=pds_wifi \
-                              -Dsonar.sources=. \
-                              -Dsonar.python.version=3.10 \
-                              -Dsonar.exclusions=**/venv/**,**/__pycache__/**,**/.git/**,**/k8s/**
-                        """
-                    }
+                withCredentials([string(credentialsId: "${SONAR_TOKEN_CREDENTIAL}", variable: 'SONAR_TOKEN')]) {
+                    sh """
+                        docker run --rm \
+                          -e SONAR_HOST_URL="${SONAR_HOST_URL}" \
+                          -e SONAR_TOKEN="\${SONAR_TOKEN}" \
+                          -v "\${WORKSPACE}:/usr/src" \
+                          -w /usr/src \
+                          ${SONAR_SCANNER_IMAGE} \
+                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                          -Dsonar.projectName=pds_wifi \
+                          -Dsonar.sources=. \
+                          -Dsonar.python.version=3.10 \
+                          -Dsonar.exclusions=**/venv/**,**/__pycache__/**,**/.git/**,**/k8s/**
+                    """
                 }
             }
         }
 
         stage('SonarQube Quality Gate') {
             steps {
-                timeout(time: 10, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                withCredentials([string(credentialsId: "${SONAR_TOKEN_CREDENTIAL}", variable: 'SONAR_TOKEN')]) {
+                    sh """
+                        set -e
+                        echo "Aguardando processamento no SonarQube..."
+                        sleep 15
+
+                        STATUS=\$(curl -s -u "\${SONAR_TOKEN}:" \
+                          "${SONAR_HOST_URL}/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_KEY}" \
+                          | sed -n 's/.*"status":"\\([A-Z]*\\)".*/\\1/p' | head -1)
+
+                        echo "Quality Gate status: \${STATUS}"
+
+                        if [ "\${STATUS}" != "OK" ]; then
+                          echo "❌ Quality Gate falhou (status=\${STATUS})"
+                          exit 1
+                        fi
+
+                        echo "✅ Quality Gate OK"
+                    """
                 }
             }
         }
